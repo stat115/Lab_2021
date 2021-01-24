@@ -1,0 +1,6 @@
+##This is a test file
+# cohort  patient normal  tumor   pid
+CESC    BI-A0VR drs://dataguids.org/aeb31428-473c-4122-9dc7-a7ddd3216d9a        drs://dataguids.org/06bcf418-b0f7-463e-8e9e-21bb1d1c1b10        CESC_BI-A0VR
+CESC    BI-A0VS drs://dataguids.org/1c5e7199-6dc4-4df3-8c36-836d1fb6168b        drs://dataguids.org/2be043e8-178c-40ec-8cea-a623ad4769b6        CESC_BI-A0VS
+CESC    BI-A20A drs://dataguids.org/0b717258-3205-4ae8-8ced-699730144d3f        drs://dataguids.org/635db6fc-86dc-49c4-994c-31d90c2bd4e2        CESC_BI-A20A
+CESC    C5-A0TN drs://dataguids.org/c5c8ac4d-6872-4d52-9a07-2fcc27d8f918        drs://dataguids.org/ca0d7dfb-6154-4a90-95ac-b1489100abdb        CESC_C5-A0TN
