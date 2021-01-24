@@ -134,12 +134,12 @@ You will only be required to download the homework files and labs but there are 
 
 - Navigate to the stat115 github page (https://github.com/stat115/)
 
-- Click on the Lab 1 repository
+- Click on the Lab_2021 repository Lab 1 repository
 
 - Click the "Clone or download" button.
-    - Either Download Zip and open in finder/explorer. Open in RStudio.
-    - Alternatively, copy the URL to the clipboard (https://github.com/stat115/Lab1.git). Switch to RStudio. Click the "Project (None)" button in the near the top menu bar. Click "New Project", "Version Control", "Git", then paste the URL into the first box.
-    - Third option, download from Canvas and open/save as a new R markdown file (.Rmd).
+    - If you have git installed, you can copy the link, then go to your terminal command line and type git clone https://github.com/stat115/Lab_2021.git
+    - You could also click Download Zip and open in finder/explorer. Open lab1.rmd in RStudio.
+    - Alternatively, copy the URL to the clipboard (https://github.com/stat115/Lab_2021.git). Switch to RStudio. Click the "Project (None)" button in the near the top menu bar. Click "New Project", "Version Control", "Git", then paste the URL into the first box.
 
 - Now this will open up a stylized coding window. Please scroll to $\approx$ line 120
 
