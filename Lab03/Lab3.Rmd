@@ -182,37 +182,32 @@ associated with cancer status (0/1 in the variable `hasCancer`).
 - `pheno`: Dataset that contains phenotypes.
 - `edata`: Expression matrix.
 
-```{r loaddata}
-data(bladderdata)
-pheno <- pData(bladderEset)
-pheno <- pheno %>%
-    mutate(hasCancer = as.numeric(cancer == "Cancer"))
-head(pheno)
-edata <- exprs(bladderEset)
+```{r,eval= FALSE}
+counts <- readRDS("./part3_counts.rds")
+
+# Perform a log TPM normalization
+log2tpm <- sapply(1:dim(counts)[2], function(idx){
+  log2((counts[,idx]/sum(counts[,idx]) * 1000000) + 1)
+})
+colnames(log2tpm) <- colnames(counts)
+rowVars <- function(x, ...) {
+  rowSums((x - rowMeans(x, ...))^2, ...)/(dim(x)[2] - 1)
+}
+rv <- rowVars(log2tpm)
+cutoff <- sort(rv, decreasing = TRUE)[5000]
+log2tpm_variable <- log2tpm[rv >= cutoff, ]
+colnames(log2tpm) <- colnames(counts)
+sample_data <- data.frame(str_split_fixed(colnames(log2tpm), "_", 3))
+colnames(sample_data) <- c("organism", "tissue", "batch")
+pheatmap(cor(log2tpm))
 ```
-
-
-```{r clustering}
-expr.dat <- t(edata)
-#expr.dat <- t(log2(tpm+1))
-
-### PCA: before batch effect
-PCA1 <- prcomp(expr.dat)$x
-df1 <- cbind.data.frame(PCA1,batch = factor(pheno$batch),
-                        cancer = factor(pheno$cancer))
-###plot
-ggplot(df1, aes(x = PC1, y = PC2, shape = cancer, color = batch)) + 
-  geom_point(size=3) + 
-  labs(title="Before Batch effect removal")+ 
-  theme_bw()
-temp <- expr.dat
-rownames(temp) <- paste(rownames(expr.dat), as.character(pheno$batch), sep = "_")
-dd <- dist(scale(temp), method = "euclidean")
-hc <- hclust(dd, method = "ward.D2")
-plot(hc, hang = -1, cex = 0.6, main = "Before batch effect removal")
+![Batch1](batch1.png)
+```{r, eval =FALSE}
+sample_data_pca <- data.frame(sample_data,prcomp(log2tpm_variable, scale = TRUE, center = TRUE)$rotation)
+ggplot(sample_data_pca, aes(x = PC2, y = PC3, shape = batch, color = organism)) +
+  geom_point(size= 7)
 ```
-
-
+![Batch1](batch2.png)
 ## ComBat
 
 - Perform batch effect adjustment
@@ -222,30 +217,18 @@ association due to whatever model you are going to run.
 - In this example, we model gene expression as a function of whether
 or not the sample is cancerous (`hasCancer` variable)
 
-```{r combat}
-model <- model.matrix(~pheno$hasCancer)
-combat_edata <- ComBat(dat = edata, batch = pheno$batch, mod = model)
+```{r combat,eval= FALSE}
+combat_dat <- ComBat(log2tpm_variable, sample_data_pca$batch, par.prior = TRUE)
+sample_data_pca_combat <- data.frame(
+  sample_data,
+  prcomp(combat_dat, scale = TRUE, center = TRUE)$rotation
+)
+
+ggplot(sample_data_pca_combat, aes(x = PC1, y = PC2, shape = batch, color = organism)) +
+  geom_point(size= 7) 
 ```
+![Batch1](batch3.png)
 
-## Check Clustering Again
-
-- Can you perform clustering to check whether ComBat removed the batch
-effect?
-
-```{r combat-clusters}
-expr.combat <- t(combat_edata)
-
-###PCA: after batch effect removal
-PCA2 <- prcomp(expr.combat)$x
-df2 <- cbind.data.frame(PCA2,
-                        batch = factor(pheno$batch),
-                        tissue = factor(pheno$cancer))
-###plot
-ggplot(df2, aes(x = PC1, y = PC2, shape = tissue, color = batch)) +
-  geom_point(size=3) +
-  labs(title="After Batch effect removal")+
-  theme_bw()
-```
 ## DESeq 
 ### Input data
 - The values in the matrix should be un-normalized counts or estimated counts of sequencing reads (for single-end RNA-seq) or fragments (for paired-end RNA-seq). It is important to provide count matrices as input for DESeq2’s statistical model to hold, as only the count values allow assessing the measurement precision correctly. The DESeq2 model internally corrects for library size, so transformed or normalized values such as counts scaled by library size should not be used as input.
@@ -334,11 +317,11 @@ counting.
     3. List type: check gene list.
     4. Submit
 - Background tab: select the Affymetrix array that was used.
-    - For the bladder data and for HW, it's
+    - For HW, it's
     Human Genome U133 Plus 2 Array.
 - Functional annotation clustering.
 
-```{r david}
+```{r david, eval =FALSE}
 design <- model.matrix(~pheno$hasCancer)
 limma_fit <- lmFit(combat_edata, design) %>%
     eBayes() %>%
