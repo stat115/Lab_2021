@@ -1,0 +1,320 @@
+---
+title: "Lab4"
+author: "Gege Qian, Andy Shi"
+date: "2/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Announcements
+
+- HW2 is out, due 02/21/2021 
+- By now, everyone should have a Cannon account
+
+## Outline
+- PCA and Hierarchical Clustering
+- Batch Removal 
+- DESeq2
+- KMeans 
+- DAVID 
+- GSEA
+- Next Week: Machine Learning and Modeling accuracy comparison 
+## Install and Load Packages
+
+```{r bioc, eval = FALSE,echo=FALSE}
+# install packages from bioconductor
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("bladderbatch")
+BiocManager::install("leukemiasEset")
+install.packages("factoextra")
+```
+
+```{r libraries, warning = FALSE, message = FALSE}
+library(sva)
+library(limma)
+library(bladderbatch)
+library(leukemiasEset)
+library(dplyr)
+library(biobroom)
+library(ggplot2)
+library(factoextra)
+library(purrr)
+setwd(".")
+```
+
+## PCA
+
+- Finds the best linear combinations of the variables.
+- "Best" means the variable that describes the largest variance
+- Can produce lower-dimensional summaries of the data.
+    - Take 100 numbers per sample and summarize them with 2 numbers
+    per sample.
+- Useful for visualization, among other things.
+
+![PCA](PCA.gif)
+
+## PCA Analysis Example
+We’ll use the data sets decathlon2 [in factoextra]
+
+Briefly, it contains:
+
+Active individuals (rows 1 to 23) and active variables (columns 1 to 10), which are used to perform the principal component analysis
+Supplementary individuals (rows 24 to 27) and supplementary variables (columns 11 to 13), which coordinates will be predicted using the PCA information and parameters obtained with active individuals/variables.
+```{r pca}
+data(decathlon2)
+decathlon2.active <- decathlon2[1:23, 1:10]
+head(decathlon2.active[, 1:6])
+res.pca <- prcomp(decathlon2.active, scale = TRUE)
+pca.var.per = round(res.pca$sdev^2/sum(res.pca$sdev^2)*100,1)
+fviz_eig(res.pca, addlabels=TRUE, ylim=c(0,100), geom = c("bar", "line"), barfill = "gold", barcolor="grey",linecolor = "red", ncp=10)+
+labs(title = "PCA Coverage",
+         x = "Principal Components", y = "% of variances")
+ggplot_data <- data.frame(Sample = rownames(res.pca$x),X = res.pca$x[,1], Y = res.pca$x[,2]) 
+run<-c()
+run[decathlon2.active$X100m<11]<-"slow"
+run[decathlon2.active$X100m>=11]<-"fast"
+names(run)<-rownames(decathlon2.active)
+ggplot(data = ggplot_data,aes(x=X,y=Y,label =Sample, color=run))+
+  geom_point()+
+  xlab(paste("PC1-",pca.var.per[1],"%",sep =" "))+
+  ylab(paste("PC2-",pca.var.per[2],"%",sep =" "))+
+  theme_bw()+
+  ggtitle("PCA graph of the first two components")
+```
+
+## R Aside: Lists
+
+- `pca_result` is a list. It holds a mix of data types.
+- Can access an individual list element with `$`, e.g. `pca_result$x`.
+- A lot of R functions use lists to return multiple things.
+- Look at `prcomp` documentation (`?prcomp`) under Value to see the
+meaning of each of the things in the list.
+
+## PCA Variance Explained
+
+- Linear algebra result: $\text{trace}(\Sigma) = \sum_i \lambda_i$
+- $\text{trace}(\Sigma)$ can be thought of as total variance.
+- Variance of $PC_i$ is $\lambda_i$
+- So variance explained by PCs 1 to j is $\frac{\sum_{i = 1}^j \lambda_i}{\sum_{i = 1}^K \lambda_i}$
+- Denominator is sum of all eigenvalues 
+
+## KMeans
+
+- An unsupervised method to cluster the data (no labels/outcomes
+provided).
+- Requires that you specify the number of clusters in advance.
+- We can use either all the genes, or only the differently expressed
+genes.
+
+### Data Preparation 
+- Rows are observations (individuals) and columns are variables
+- Any missing value in the data must be removed or estimated.
+- The data must be standardized (i.e., scaled) to make variables comparable. Recall that, standardization consists of transforming the variables such that they have mean zero and standard deviation one
+![K-Means Clustering](k-means.gif)
+
+```{r k-means}
+df <- USArrests
+df <- na.omit(df)
+df <- scale(df)
+distance <- get_dist(df)
+fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+k2 <- kmeans(df, centers = 2, nstart = 25)
+fviz_cluster(k2, data = df)
+```
+```{r k-means2}
+k3 <- kmeans(df, centers = 3, nstart = 25)
+k4 <- kmeans(df, centers = 4, nstart = 25)
+k5 <- kmeans(df, centers = 5, nstart = 25)
+
+# plots to compare
+p1 <- fviz_cluster(k2, geom = "point", data = df) + ggtitle("k = 2")
+p2 <- fviz_cluster(k3, geom = "point",  data = df) + ggtitle("k = 3")
+p3 <- fviz_cluster(k4, geom = "point",  data = df) + ggtitle("k = 4")
+p4 <- fviz_cluster(k5, geom = "point",  data = df) + ggtitle("k = 5")
+
+library(gridExtra)
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+set.seed(123)
+
+# function to compute total within-cluster sum of square 
+wss <- function(k) {
+  kmeans(df, k, nstart = 10 )$tot.withinss
+}
+
+# Compute and plot wss for k = 1 to k = 15
+k.values <- 1:15
+
+# extract wss for 2-15 clusters
+wss_values <- map_dbl(k.values, wss)
+
+plot(k.values, wss_values,
+       type="b", pch = 19, frame = FALSE, 
+       xlab="Number of clusters K",
+       ylab="Total within-clusters sum of squares")
+```
+## Hierarchical Clustering
+- Hierarchical clustering is an alternative approach to k-means clustering for identifying groups in the dataset
+- Dose not pre-specify the number of clusters
+- Generate tree-based representation of the observations, called a dendrogram. 
+```{r heriarchecal clustering}
+d <- dist(df, method = "euclidean")
+
+# Hierarchical clustering using Complete Linkage
+hc1 <- hclust(d, method = "complete" )
+
+# Plot the obtained dendrogram
+plot(hc1, cex = 0.6, hang = -1)
+```
+    
+
+## Batch Effect
+
+- Why is batch effect a problem?
+- Example data: Gene expression data from investigation into bladder
+cancer.
+- Outcome: finding differentially expressed genes that are
+associated with cancer status (0/1 in the variable `hasCancer`).
+- Already normalized with RMA.
+- `pheno`: Dataset that contains phenotypes.
+- `edata`: Expression matrix.
+
+```{r loaddata}
+data(bladderdata)
+pheno <- pData(bladderEset)
+pheno <- pheno %>%
+    mutate(hasCancer = as.numeric(cancer == "Cancer"))
+head(pheno)
+edata <- exprs(bladderEset)
+```
+
+
+```{r clustering}
+expr.dat <- t(edata)
+#expr.dat <- t(log2(tpm+1))
+
+### PCA: before batch effect
+PCA1 <- prcomp(expr.dat)$x
+df1 <- cbind.data.frame(PCA1,batch = factor(pheno$batch),
+                        cancer = factor(pheno$cancer))
+###plot
+ggplot(df1, aes(x = PC1, y = PC2, shape = cancer, color = batch)) + 
+  geom_point(size=3) + 
+  labs(title="Before Batch effect removal")+ 
+  theme_bw()
+temp <- expr.dat
+rownames(temp) <- paste(rownames(expr.dat), as.character(pheno$batch), sep = "_")
+dd <- dist(scale(temp), method = "euclidean")
+hc <- hclust(dd, method = "ward.D2")
+plot(hc, hang = -1, cex = 0.6, main = "Before batch effect removal")
+```
+
+
+## ComBat
+
+- Perform batch effect adjustment
+- Need to specify model matrix: same matrix you use for LIMMA
+- Tells ComBat to remove the batch effect but not to remove the
+association due to whatever model you are going to run.
+- In this example, we model gene expression as a function of whether
+or not the sample is cancerous (`hasCancer` variable)
+
+```{r combat}
+model <- model.matrix(~pheno$hasCancer)
+combat_edata <- ComBat(dat = edata, batch = pheno$batch, mod = model)
+```
+
+## Check Clustering Again
+
+- Can you perform clustering to check whether ComBat removed the batch
+effect?
+
+```{r combat-clusters}
+expr.combat <- t(combat_edata)
+
+###PCA: after batch effect removal
+PCA2 <- prcomp(expr.combat)$x
+df2 <- cbind.data.frame(PCA2,
+                        batch = factor(pheno$batch),
+                        tissue = factor(pheno$cancer))
+###plot
+ggplot(df2, aes(x = PC1, y = PC2, shape = tissue, color = batch)) +
+  geom_point(size=3) +
+  labs(title="After Batch effect removal")+
+  theme_bw()
+```
+
+## DAVID vs. GSEA
+
+- Idea: look for sets of genes (e.g. biological pathways) that are
+overrepresented in your results.
+- DAVID takes a selected list of differentially expressed genes and sees
+if there are genes in certain gene sets that are over-represented by
+counting.
+- GSEA takes all the genes and uses the test statistics (e.g. t-value).
+- Need to have a good definition for the gene set.
+- DAVID has its own gene set definitions.
+- GSEA requires you to supply your own---can choose many different ones.
+    - One good option is [MSigDB](http://software.broadinstitute.org/gsea/msigdb/index.jsp).
+    - Curated gene sets from the Broad Institute for many organisms.
+    - We will use the Hallmark gene set for humans.
+
+## DAVID
+
+- Take differentially expressed genes from limma.
+- Upload tab:
+    1. Paste list into DAVID.
+    2. Select identifier: AFFYMETRIX_3PRIME_IVT_ID
+    3. List type: check gene list.
+    4. Submit
+- Background tab: select the Affymetrix array that was used.
+    - For the bladder data and for HW, it's
+    Human Genome U133 Plus 2 Array.
+- Functional annotation clustering.
+
+```{r david}
+design <- model.matrix(~pheno$hasCancer)
+limma_fit <- lmFit(combat_edata, design) %>%
+    eBayes() %>%
+    tidy() %>%
+    mutate(fdr = p.adjust(p.value, method = "fdr")) %>%
+    arrange(p.value)
+up_genes <- limma_fit %>% filter(fdr < 0.05, estimate > log2(2))
+down_genes <- limma_fit %>% filter(fdr < 0.05, estimate < -log2(2))
+write.csv(up_genes, file = "david_up.csv")
+write.csv(down_genes, file = "david_down.csv")
+```
+
+## GSEA 
+The list of differentially expressed genes is sometimes so long that its interpretation becomes cumbersome and time consuming. A common downstream procedure is gene set testing. It aims to understand which pathways or gene networks the deferentially expressed genes are implicated in.
+
+### GSEA analysis
+- ranking all genes in the data set
+- identifying the rank positions of all members of the gene set in the ranked data set
+- calculating an enrichment score (ES) that represents the difference between the observed rankings and that which would be expected assuming a random rank distribution.
+#### Create Rank List
+```{r ,eval= FALSE}
+gseaDat <- filter(shrinkLvV, !is.na(Entrez))
+ranks <- gseaDat$logFC
+names(ranks) <- gseaDat$Entrez
+head(ranks)
+barplot(sort(ranks, decreasing = T))
+```
+![Rank](rank.png)
+```{r, eval= FALSE}
+fgseaRes <- fgsea(pathwaysH, ranks, minSize=15, maxSize = 500, nperm=1000)
+head(fgseaRes[order(padj, -abs(NES)), ], n=10)
+plotEnrichment(pathwaysH[["HALLMARK_ESTROGEN_RESPONSE_EARLY"]], ranks)
+```
+![GSEA](GSEA2.png)
+![GSEA](gsea4.png)
+ ●   The top portion of the plot shows the running ES for the gene set as the analysis walks down the ranked list. The score at the peak of the plot (the score furthest from 0.0) is the ES for the gene set. Gene sets with a distinct peak at the beginning (such as the one shown here) or end of the ranked list are generally the most interesting.
+
+●     The middle portion of the plot shows where the members of the gene set appear in the ranked list of genes.
+
+The leading edge subset of a gene set is the subset of members that contribute most to the ES. For a positive ES (such as the one shown here), the leading edge subset is the set of members that appear in the ranked list prior to the peak score. For a negative ES, it is the set of members that appear subsequent to the peak score.
+
+●     The bottom portion of the plot shows the value of the ranking metric as you move down the list of ranked genes. The ranking metric measures a gene’s correlation with a phenotype. The value of the ranking metric goes from positive to negative as you move down the ranked list. A positive value indicates correlation with the first phenotype and a negative value indicates correlation with the second phenotype. For continuous phenotypes (time series or gene of interest), a positive value indicates correlation with the phenotype profile and a negative value indicates no correlation or inverse correlation with the profile.
