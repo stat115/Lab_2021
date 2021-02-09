@@ -1,7 +1,7 @@
 ---
-title: "Lab4"
-author: "Gege Qian, Andy Shi"
-date: "2/5/2021"
+title: "Lab3"
+author: "Gege Qian"
+date: "2/9/2021"
 output: html_document
 ---
 
@@ -246,7 +246,70 @@ ggplot(df2, aes(x = PC1, y = PC2, shape = tissue, color = batch)) +
   labs(title="After Batch effect removal")+
   theme_bw()
 ```
+## DESeq 
+### Input data
+- The values in the matrix should be un-normalized counts or estimated counts of sequencing reads (for single-end RNA-seq) or fragments (for paired-end RNA-seq). It is important to provide count matrices as input for DESeq2’s statistical model to hold, as only the count values allow assessing the measurement precision correctly. The DESeq2 model internally corrects for library size, so transformed or normalized values such as counts scaled by library size should not be used as input.
+- A DESeqDataSet object must have an associated design formula. The design formula expresses the variables which will be used in modeling. The formula should be a tilde (~) followed by the variables with plus signs between them (it will be coerced into an formula if it is not already). The design can be changed later, however then all differential analysis steps should be repeated, as the design formula is used to estimate the dispersions and to estimate the log2 fold changes of the model.
 
+
+http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html
+```{r DESeq,warning = FALSE, message = FALSE}
+library("tximport")
+library("readr")
+library("tximportData")
+dir <- system.file("extdata", package="tximportData")
+samples <- read.table(file.path(dir,"samples.txt"), header=TRUE)
+samples$condition <- factor(rep(c("A","B"),each=3))
+rownames(samples) <- samples$run
+samples[,c("pop","center","run","condition")]
+files <- file.path(dir,"salmon", samples$run, "quant.sf.gz")
+names(files) <- samples$run
+tx2gene <- read_csv(file.path(dir, "tx2gene.gencode.v27.csv"))
+txi <- tximport(files, type="salmon", tx2gene=tx2gene)
+```
+```{r DESeq 2, warning = FALSE, message = FALSE }
+library("DESeq2")
+library("apeglm")
+ddsTxi <- DESeqDataSetFromTximport(txi,
+                                   colData = samples,
+                                   design = ~ condition)
+dds <- DESeq(ddsTxi)
+res <- results(dds)
+resultsNames(dds)
+resLFC <- lfcShrink(dds, coef="condition_B_vs_A", type="apeglm")
+resLFC
+```
+
+
+```{r DESeq 3, eval =FALSE}
+resApeT <- lfcShrink(dds, coef=2, type="apeglm", lfcThreshold=1)
+plotMA(resApeT, ylim=c(-3,3), cex=.8)
+abline(h=c(-1,1), col="dodgerblue", lwd=2)
+```
+![MA Plot](MAPlot.png)
+```{r Volcano Plot,eval =FALSE}
+EnhancedVolcano(rdf,
+    lab = rownames(rdf),
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    selectLab = rownames(subset(rdf, rownames(rdf) %in% c(gd.marker.pos,gd.marker.neg) & log2FoldChange>1.5)),
+    xlab = bquote(~Log[2]~ 'fold change'),
+    pCutoff = 10e-2,
+    FCcutoff = 1.5,
+    pointSize = 4.0,
+    labSize = 6.0,
+    labCol = 'black',
+    labFace = 'bold',
+    boxedLabels = TRUE,
+    colAlpha = 4/5,
+    legendPosition = 'right',
+    legendLabSize = 8,
+    legendIconSize = 2.0,
+    drawConnectors = TRUE,
+    widthConnectors = 1.0,
+    colConnectors = 'black')
+```
+![Volcano](Volcano.png)
 ## DAVID vs. GSEA
 
 - Idea: look for sets of genes (e.g. biological pathways) that are

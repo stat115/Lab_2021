@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta name="referrer" content="unsafe-url">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Potential Threat Detected</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="msapplication-TileColor" content="#000000">
+  <meta name="msapplication-config" content="./browserconfig.xml">
+  <meta name="theme-color" content="#000000">
+
+  <link rel="stylesheet" href="./css/theme-xdns-security.min.css" inline>
+
+  <script type="text/javascript" src="js/jquery/jquery.js"></script>
+  <script type="text/javascript" src="js/class/class.min.js"></script>
+  <script type="text/javascript" src="js/jquery-encoder/jquery.jquery-encoder.min.js"></script>
+  <script type="text/javascript" src="js/warn.js"></script>
+</head>
+
+<body onload="render()">
+  <header class="header">
+    <img src="./img/icon_enhanced-security-no-threats.svg" height="70" alt="" inline>
+  </header>
+  <div class="wrapper">
+    <h1>Hold On!</h1>
+    <hr noshade>
+    <div class="section_info">
+      <p>We blocked access to</p>
+      <p id="site_en"></p>
+    </div>
+    <div class="subheader">
+      <p>This site might compromise your device or contain dangerous content. <br/>
+To avoid these risks, close this window and skip this site. </p>
+    </div>
+    <div class="buttons_en">
+      <a href="#" class="access_link" id="unsafe" rel="noopener noreferrer">Proceed Anyway</a>
+    </div>
+  </div>
+
+  <div class="wrapper">
+    <h1>Un instant!</h1>
+    <hr noshade>
+    <div class="section_info">
+      <p>Nous avons bloqué l’accès à</p>
+      <p id="site_fr"></p>
+    </div>
+    <div class="subheader">
+      <p>Ce site pourrait compromettre votre appareil ou contenir du contenu dangereux. </p>
+      <p>Pour éviter ces risques, fermez cette fenêtre et évitez ce site. </p>
+    </div>
+    <div class="buttons_fr">
+      <a href="#" class="access_link" id="unsafe" rel="noopener noreferrer">Continuer quand même</a>
+    </div>
+  </div>
+
+  <div class="wrapper">
+    <h1>¡Espera!</h1>
+    <hr noshade>
+    <div class="section_info">
+      <p>Bloqueamos el acceso a </p>
+      <p id="site_es"></p>
+    </div>
+    <div class="subheader">
+      <p>Este sitio puede poner en peligro a tu dispositivo o tener contenido peligroso.  </p>
+      <p>Para evitar estos riesgos, cierra esta ventana y sáltate este sitio. </p>
+    </div>
+    <div class="buttons_es">
+      <a href="#" class="access_link" id="unsafe" rel="noopener noreferrer">Continuar de todas formas</a>
+    </div>
+  </div>
+
+
+  <div class="wrapper">
+    <h1>Aspetta!</h1>
+    <hr noshade>
+    <div class="section_info">
+      <p>Abbiamo bloccato l'accesso a  </p>
+      <p id="site_it"></p>
+    </div>
+    <div class="subheader">
+      <p>Questo sito potrebbe compromettere il dispositivo o includere contenuti pericolosi.  </p>
+      <p>Per evitare eventuali rischi, chiudi la finestra e ignora questo sito. </p>
+    </div>
+    <div class="buttons_it">
+      <a href="#" class="access_link" id="unsafe" rel="noopener noreferrer">Procedi comunque</a>
+    </div>
+  </div>
+</body>
+
+</html>
