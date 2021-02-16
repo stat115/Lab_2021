@@ -1,1 +1,0 @@
-Pattern Identification: - Classification: - supervised - Identify Pre-defined class - KNN and SVM - Clustering: - unsupervised - Identify Similarity - K-means, Umap
