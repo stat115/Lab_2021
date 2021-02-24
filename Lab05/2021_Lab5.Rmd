@@ -1,0 +1,131 @@
+---
+title: "Lab 5 Relevant Code"
+author: "Jiazhen Rong, Qing Xiao"
+date: '2021-02-23'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+```
+
+### Please notice that the following codes are for Lab 5 session. Please look at the code with Lab 5 recorded viedos and slides for better understanding. For live demos of using the webpage-based tools, please view Lab 5 recorded viedos.
+* This Lab covers Part I-IV of HW3. 
+* Some codes were adapted from previous year's YA Qing Xiao.
+
+## Bash Script Review
+
+```{r, engine='bash', eval=FALSE}
+#!/bin/bash
+#SBATCH -n 1 # Number of cores requested
+#SBATCH -N 1 # Ensure that all cores are on one machine
+#SBATCH -t 30 # Runtime in minutes
+#SBATCH -p serial_requeue # Partition to submit to
+#SBATCH --mem=32G # Memory in GB (see also --mem-per-cpu)
+#SBATCH -o p1.out # Standard out goes to this file
+#SBATCH -e p1.err # Standard err goes to this file
+
+# LOAD_MODULES
+module load <module_name>
+
+Your code….
+
+```
+
+## How to Insert Figures in .Rmd
+```{r, engine='bash', eval=FALSE}
+{r,echo=FALSE,out.width = '100%'}  (add ``` at the front of the line)
+knitr::include_graphics("/path/to/your/png")
+```
+
+## BWA Alignment and Samtools for Summary Statistics: 
+
+```{r, engine='bash', eval=FALSE}
+# your shebang/bash script
+# Check the version to use by using `module spider <module's name>` or `module avail`
+module load bwa/0.7.15-fasrc02
+bwa mem /path/to/index/fasta /path/to/input/data > /path/to/output/file/your_output_name.sam
+```
+
+```{r, engine='bash', eval=FALSE}
+# samtools might be useful to acquire the summary statistics
+module load samtools/1.5-fasrc02
+
+#Check the number of total reads and successfully mapped reads
+$ samtools flagstat bwa.sam 
+#Create a bam file of uniquely mapped reads
+$ samtools view -bq 1 bwa.sam > unique.bam
+#Again check the unique bam file to find the number of uniquelly mapped reads
+$ samtools flagstat unique.bam
+
+#Then calculate proportion of uniquely mapped from the output file
+```
+
+## MACS Remove Duplicated Reads:
+
+```{r, engine='bash', eval=FALSE}
+
+# your shebang
+module load centos6/0.0.1-fasrc01
+module load macs2/2.1.2_dev-fasrc01
+
+macs2 filterdup -i /path/to/input/bam/file -g hs --keep-dup 1 -o ./path/to/output/bed/file/your_output_name.bed
+
+#You may find the % redundancy in the .err file
+```
+
+## MACS2 - Peak Calling for one sample:
+Call peak for one sampleL
+
+```{r, engine='bash', eval=FALSE}
+# your shebang/bash script
+module load centos6/0.0.1-fasrc01
+module load macs2/2.1.2_dev-fasrc01
+
+macs2 callpeak -t /path/to/your/input/sample/bed/file.bed -f AUTO -g hs -q <FDR cutoff> --fe-cutoff <fold change> --outdir path/to/save/your/output/ -n prefix_of_your_output
+
+#The fragment length can also be found in .err files
+#then Use `wc -l` to count the number of peaks
+```
+
+```{r, engine='bash', eval=FALSE}
+-t/--treatment filename
+-c/--control
+-n/--output name
+-f/--format of tag files
+--outdir/--the folder where all the output files saved into
+-n/--name of the output as NAME_peaks.bed
+-g/--gsize The default hs -- 2.7e9 is recommended as_for UCSC human hg18 assembly
+-q/--qvalue (minimum FDR) cutoff to call significant regions. Default is 0.05.
+```
+
+Run the above commands for both tumor and normal sample.
+
+## MACS2 - Peak Calling with control (using normal sample as control):
+
+```{r, engine='bash', eval=FALSE}
+# your shebang
+module load centos6/0.0.1-fasrc01
+module load macs2/2.1.2_dev-fasrc01
+
+macs2 callpeak -t path/to/your/treat.bed -c path/to/your/control.bed -f AUTO -g hs -q <FDR cutoff> --fe-cutoff <fold change> --outdir path/to/your/output/folder/ -n prefix_of_your_output
+```
+The output of prefix_of_your_output_summits.bed will be used for downstream analysis.
+
+
+## Rules for submitting the homework:
+
+Please submit your solution directly on the canvas website. Please
+provide both your code in this Rmd document and an html file for your
+final write-up. Please pay attention to the clarity and cleanness of
+your homework.
+
+The teaching fellows will grade your homework and give the grades with
+feedback through canvas within one week after the due date. Some of the
+questions might not have a unique or optimal solution. TFs will grade
+those according to your creativity and effort on exploration, especially
+in the graduate-level questions.
+
+## Acknowledgement
+- Dr. X. Shirley Liu
+- Qing Xiao
