@@ -1,0 +1,137 @@
+---
+title: "2021 Lab 6 Relevant Code"
+author: "Jiazhen Rong, Qing Xiao"
+date: '2021-03-02'
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+```
+
+### Please notice that the following codes are for Lab 6 session. Please look at the code with Lab 6 recorded viedos and slides for better understanding. For live demos of using the webpage-based tools, please view Lab 6 recorded viedos.
+* This Lab covers Part V-VI of HW3. 
+* Some codes were adapted from previous year's TA Qing Xiao.
+
+## Re-write RefGene Annotation to BED format with Python:
+
+```{python,eval=FALSE}
+import pandas as pd
+
+#Read in the reference data
+TSS = pd.read_table('/path/to/refGene.txt', header=None)
+
+#Create a subset from it with the columns we need 
+TSS_sub = TSS.iloc[:,[2,4,5,3,12]]
+TSS_sub.columns = ["chr","start","end","strand","id"]
+
+#Create subsets of genes on positive strand and negative strand
+TSS_pos = TSS_sub[TSS_sub.strand == '+']
+TSS_neg = TSS_sub[TSS_sub.strand == '-']
+
+#Rearrange the data and create a new dataframe containing the information of TSS we want
+TSS_pos.end = TSS_pos.start
+TSS_neg.start = TSS_neg.end
+TSS_new = TSS_pos.append(TSS_neg)
+TSS_new.end = TSS_new.end + 1
+
+#Export it into a bed file
+TSS_new.to_csv("/your/TSS_hg38_bed_file",sep='\t',header=False, index=False)
+```
+
+Then you can use BEDTools window for finding which hg38 genes have ChIP-Seq peaks within +/- 2KB windows of their TSS.
+
+```{r, engine='bash', eval=FALSE}
+module load centos6/0.0.1-fasrc01
+module load bedtools/2.17.0-fasrc01
+
+#We can use bedtools to select a window size, then find the overlaps between the peaks and the annotated genes
+bedtools window -w <window_size> -u -a <your_new_tss_bed_file> -b q4_diff_peaks_summits.bed > <your_output_bed>
+
+#Count the number of genes
+wc -l <your_output_bed>
+
+#The same task might be also completed with the python package wrapping BEDTools (pybedtools), but you would need to install and import it 
+```
+
+## For getting Gene Names to run DAVID:
+In Q13 & 14, you will need to extract gene names (some specific columns) out of some files.
+Sometimes you will need to rank each gene by scores, finding overlaps with other gene lists and in the end you need to output gene names for DAVID.
+* Please use and select Official Gene Symbol names when running DAVID.
+
+```{r, eval=FALSE}
+# check the following commands in R:
+?read.table
+?order
+?intersect
+?write.table
+```
+
+For Q13:
+```{r, eval=FALSE}
+#Read in your Q12 result and extract official gene symbols
+
+#Run DAVID with these putative target genes alone
+
+#Find the overlap between the putative target genes and the upregulated genes in prostate cancer provided in Q13
+
+#Run DAVID again with these overlapping genes
+```
+
+For Q14:
+```{r, eval=FALSE}
+#Read in the peaks with different regulatory potential score
+
+#Rank them by the score and select the top 1500 genes, then run DAVID
+
+#Find the overlap between the top 1500 genes and the upregulated genes you imported in Q13
+
+#Generate lists of genes and run DAVID again
+```
+
+
+## ATAC-seq
+Getting Differential ATAC-Seq peaks with BEDTools: <br/>
+* Take a look at bedtools subtract <br/>
+* please include -A option <br/>
+* You need to cut the first 3 columns otherwise downstream process might complain <br/>
+
+```{r, engine='bash', eval=FALSE}
+module load centos6/0.0.1-fasrc01
+module load bedtools/2.17.0-fasrc01
+
+your bedtool command | cut -f 1-3 > <your_out_put.bed>
+```
+
+## Running LISA on server:
+
+```{r,eval=FALSE}
+# load module
+module load Anaconda/5.0.1-fasrc02
+
+# use pre-installed lisa2 & acticate environment
+source /n/stat115/2021/HW5/miniconda3/bin/activate
+conda activate lisa2
+
+lisa oneshot hg38 <your/up_regulated_gene_names_file/txt> -b 300 --seed=2556 --save_metadata > </your/output/txt>
+```
+Then take a screen shot of the top TFs that might be regulators given the upregualted gene list.
+
+## Rules for submitting the homework:
+
+Please submit your solution directly on the canvas website. Please
+provide both your code in this Rmd document and an html file for your
+final write-up. Please pay attention to the clarity and cleanness of
+your homework.
+
+The teaching fellows will grade your homework and give the grades with
+feedback through canvas within 1-2 week after the due date. Some of the
+questions might not have a unique or optimal solution. TFs will grade
+those according to your creativity and effort on exploration, especially
+in the graduate-level questions.
+
+## Acknowledgement
+- Dr. X. Shirley Liu
+- Qing Xiao
+
+
+

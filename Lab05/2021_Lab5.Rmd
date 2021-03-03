@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
 
 ### Please notice that the following codes are for Lab 5 session. Please look at the code with Lab 5 recorded viedos and slides for better understanding. For live demos of using the webpage-based tools, please view Lab 5 recorded viedos.
 * This Lab covers Part I-IV of HW3. 
-* Some codes were adapted from previous year's YA Qing Xiao.
+* Some codes were adapted from previous year's TA Qing Xiao.
 
 ## Bash Script Review
 
