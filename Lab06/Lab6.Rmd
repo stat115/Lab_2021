@@ -53,6 +53,42 @@ wc -l <your_output_bed>
 #The same task might be also completed with the python package wrapping BEDTools (pybedtools), but you would need to install and import it 
 ```
 
+
+If you want to submit the script on server instead of running it on your local computer, you can wrap the python code in main function, and save it in a .py script. Then you can submit the python script with bash script.
+```{r,eval=FALSE}
+#### Within you q12.py script
+
+def main():
+        #Read in the reference data
+        TSS = pd.read_table('/path/to/refGene.txt', header=None)
+
+        #Create a subset from it with the columns we need 
+        TSS_sub = TSS.iloc[:,[2,4,5,3,12]]
+        TSS_sub.columns = ["chr","start","end","strand","id"]
+
+        #Create subsets of genes on positive strand and negative strand
+        TSS_pos = TSS_sub[TSS_sub.strand == '+']
+        TSS_neg = TSS_sub[TSS_sub.strand == '-']
+
+        #Rearrange the data and create a new dataframe containing the information of TSS we want
+        TSS_pos.end = TSS_pos.start
+        TSS_neg.start = TSS_neg.end
+        TSS_new = TSS_pos.append(TSS_neg)
+        TSS_new.end = TSS_new.end + 1
+
+        #Export it into a bed file
+        TSS_new.to_csv("/your/TSS_hg38_bed_file",sep='\t',header=False, index=False)
+
+if __name__ == '__main__':
+    main()
+```
+
+```{r,eval=FALSE}
+# LOAD_MODULES
+module load python/3.7.7-fasrc01
+python q12.py
+```
+
 ## For getting Gene Names to run DAVID:
 In Q13 & 14, you will need to extract gene names (some specific columns) out of some files.
 Sometimes you will need to rank each gene by scores, finding overlaps with other gene lists and in the end you need to output gene names for DAVID.

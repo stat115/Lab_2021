@@ -397,6 +397,35 @@ bedtools window -w &lt;window_size&gt; -u -a &lt;your_new_tss_bed_file&gt; -b q4
 wc -l &lt;your_output_bed&gt;
 
 #The same task might be also completed with the python package wrapping BEDTools (pybedtools), but you would need to install and import it </code></pre>
+<p>If you want to submit the script on server instead of running it on your local computer, you can wrap the python code in main function, and save it in a .py script. Then you can submit the python script with bash script.</p>
+<pre class="r"><code>#### Within you q12.py script
+
+def main():
+        #Read in the reference data
+        TSS = pd.read_table(&#39;/path/to/refGene.txt&#39;, header=None)
+
+        #Create a subset from it with the columns we need 
+        TSS_sub = TSS.iloc[:,[2,4,5,3,12]]
+        TSS_sub.columns = [&quot;chr&quot;,&quot;start&quot;,&quot;end&quot;,&quot;strand&quot;,&quot;id&quot;]
+
+        #Create subsets of genes on positive strand and negative strand
+        TSS_pos = TSS_sub[TSS_sub.strand == &#39;+&#39;]
+        TSS_neg = TSS_sub[TSS_sub.strand == &#39;-&#39;]
+
+        #Rearrange the data and create a new dataframe containing the information of TSS we want
+        TSS_pos.end = TSS_pos.start
+        TSS_neg.start = TSS_neg.end
+        TSS_new = TSS_pos.append(TSS_neg)
+        TSS_new.end = TSS_new.end + 1
+
+        #Export it into a bed file
+        TSS_new.to_csv(&quot;/your/TSS_hg38_bed_file&quot;,sep=&#39;\t&#39;,header=False, index=False)
+
+if __name__ == &#39;__main__&#39;:
+    main()</code></pre>
+<pre class="r"><code># LOAD_MODULES
+module load python/3.7.7-fasrc01
+python q12.py</code></pre>
 </div>
 <div id="for-getting-gene-names-to-run-david" class="section level2">
 <h2>For getting Gene Names to run DAVID:</h2>
@@ -446,7 +475,7 @@ lisa oneshot hg38 &lt;your/up_regulated_gene_names_file/txt&gt; -b 300 --seed=25
 <div id="rules-for-submitting-the-homework" class="section level2">
 <h2>Rules for submitting the homework:</h2>
 <p>Please submit your solution directly on the canvas website. Please provide both your code in this Rmd document and an html file for your final write-up. Please pay attention to the clarity and cleanness of your homework.</p>
-<p>The teaching fellows will grade your homework and give the grades with feedback through canvas within one week after the due date. Some of the questions might not have a unique or optimal solution. TFs will grade those according to your creativity and effort on exploration, especially in the graduate-level questions.</p>
+<p>The teaching fellows will grade your homework and give the grades with feedback through canvas within 1-2 week after the due date. Some of the questions might not have a unique or optimal solution. TFs will grade those according to your creativity and effort on exploration, especially in the graduate-level questions.</p>
 </div>
 <div id="acknowledgement" class="section level2">
 <h2>Acknowledgement</h2>
