@@ -57,6 +57,7 @@ wc -l <your_output_bed>
 If you want to submit the script on server instead of running it on your local computer, you can wrap the python code in main function, and save it in a .py script. Then you can submit the python script with bash script.
 ```{r,eval=FALSE}
 #### Within you q12.py script
+import pandas as pd
 
 def main():
         #Read in the reference data
