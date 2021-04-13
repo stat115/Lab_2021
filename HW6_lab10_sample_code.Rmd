@@ -1,0 +1,124 @@
+---
+title: "HW6_Lab11_sample_code"
+author: "Qian Xiao"
+date: '2020-04-13'
+output: html_document
+---
+#Packages 
+```{r}
+library(FirebrowseR) 
+library(bladderbatch)
+library(limma)
+library(sva)
+library(dplyr)
+library(survival)
+library(glmnet)
+library(ggplot2)
+library(survminer) 
+```
+
+#PartI Q2
+```{r}
+# download all available cohorts
+cohorts <- Metadata.Cohorts(format = "csv")
+# show what cohorts are available
+head(cohorts)
+```
+
+```{r}
+#Retrieve a list of 150 patients associated with a cancer type
+head(Samples.Clinical(cohort="BRCA",format="tsv"))
+```
+
+
+```{r}
+# Download BRCA data (have to do this because we can only receive 150 patients at a time)
+all.Received <- FALSE
+page.Counter <- 1
+page.size <- 150
+brca_pats <- list()
+while(all.Received == FALSE) {
+    brca_pats[[page.Counter]] <- Samples.Clinical(format = "csv",
+            cohort = "BRCA", page_size = page.size, page = page.Counter)
+    if(page.Counter > 1) {
+        colnames(brca_pats[[page.Counter]]) <-
+            colnames(brca_pats[[page.Counter-1]])
+    }
+
+    if(nrow(brca_pats[[page.Counter]]) < page.size) {
+        all.Received = TRUE
+    } else {
+        page.Counter = page.Counter + 1
+    }
+}
+
+brca_pats <- do.call(rbind, brca_pats)
+
+#Dimension of the table containing patient info
+dim(brca_pats)
+```
+
+```{r}
+head(brca_pats)
+```
+
+
+#PartII Hints
+
+##LIMMA
+```{r, eval=FALSE}
+
+lmFit() #For fitting LIMMA
+
+eBayes() #For getting summary statistics
+
+topTable() #Wrapping summary statistics up into a table, adjusted P is equivalent to FDR, should consider the absolute value of logFC because we want both UPREGULATED and DOWNREGULATED genes
+
+```
+
+##Survival Analysis
+
+```{r}
+# using lung data from survival package
+# data wrangling to make this easier
+lung2 <- lung
+# 1 = died, 0 = still alive at last observation
+lung2$death <- lung$status - 1
+lung2$sex <- lung2$sex - 1
+
+km_fit <- survfit(Surv(time, death) ~ sex, data = lung2)
+ggsurvplot(km_fit, pval = TRUE, pval.method = TRUE) +
+    ggtitle("Survival for Sexes")
+```
+
+##Cox Regression
+```{r}
+cox_mod1 <- coxph(Surv(time, death) ~ sex, data = lung2)
+summary(cox_mod1)
+```
+
+##LASSO regularization
+```{r}
+set.seed(321)
+
+lung_nona <- na.omit(lung2) #Omit NAs
+
+x <- as.matrix(lung_nona[,4:10]) #Subset the covariates and assign it to x
+
+survobj <- Surv(lung_nona$time, lung_nona$death) #Create the Survival object, which is the outcome we are interested in
+
+cvfit <- cv.glmnet(x, survobj, family = "cox", alpha = 1) #Cross-validation
+
+cvfit
+```
+
+```{r}
+coef(cvfit, s = "lambda.min") #The set of coefficients using lambda.min, choose those that are non-zero to run cox regression
+```
+
+##Random cox models VS differential gene cox model
+
+The idea is to have a for loop. For each iteration, randomly sample n predictors from all the predictors, subset the data with outcome and the selected n predictors, and then run cox regression using the subsetted data frame. You may record AIC/BIC of each random cox model for downstream comparison.
+
+
+
