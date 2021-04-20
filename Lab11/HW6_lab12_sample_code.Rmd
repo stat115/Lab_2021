@@ -1,0 +1,63 @@
+---
+title: "Lab12_sample_code"
+author: "Qian Xiao"
+date: '2020-04-15'
+output: html_document
+---
+
+#PartIII
+
+```{r}
+library(survival)
+data(lung)
+#Count the occurrence of values in column "ph.karno" and sort by frequency of occurrence
+lung %>% group_by(ph.karno) %>% summarise(Count=n()) %>% arrange(desc(Count))
+```
+
+
+#PartIV 
+
+##Sample Slurm Script
+```{r, engine='bash', eval=FALSE}
+#!/bin/bash
+#SBATCH -n 1 # Number of cores
+#SBATCH -N 1 # Ensure that all cores are on one machine
+#SBATCH -t 0-06:00 # Runtime in D-HH:MM
+#SBATCH -p serial_requeue # Partition to submit to
+#SBATCH --mem=1000 # Memory pool for all cores (see also --mem-per-cpu)
+#SBATCH -o mageck.out # File to which STDOUT will be written
+#SBATCH -e mageck.err # File to which STDERR will be written
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user="YOUR_EMAIL@harvard.edu"
+
+module load Anaconda/5.0.1-fasrc01
+
+# your code here
+
+```
+
+##Pooled replicates
+```{r, engine='bash', eval=FALSE}
+#Generate read counts
+mageck count -l library.csv -n OUT --sample-label Day0,Day23 \
+--fastq Day0_Rep1.fastq.gz,Day0_Rep2.fastq.gz Day23_Rep1.fastq.gz,Day23_Rep2.fastq.gz
+
+#Generate summary statistics
+mageck test -k OUT.count.txt -t Day23 -c Day0 -n OUT
+```
+
+##Consider replicates separately
+```{r, engine='bash', eval=FALSE}
+
+#Get the read counts
+
+mageck count -l library.csv -n OUT_SEPARATE --sample-label Day0_Rep1,Day0_Rep2,Day23_Rep1,Day23_Rep2 \
+--fastq Day0_Rep1.fastq.gz Day0_Rep2.fastq.gz Day23_Rep1.fastq.gz Day23_Rep2.fastq.gz
+```
+
+```{r}
+#Read in gene summary file
+gdata <- ReadRRA("OUT.gene_summary.txt")
+```
+
+
